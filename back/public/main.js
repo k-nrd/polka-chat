@@ -23,8 +23,6 @@ $(function() {
 	var lastTypingTime;
 	var $currentInput = $usernameInput.focus();
 
-	var socket = io();
-
 	function addParticipantsMessage (data) {
 		var message = '';
 		if (data.users === 1) {
@@ -224,9 +222,15 @@ $(function() {
 	});
 
 	// Socket events
+  const ws = new WebSocket(`ws://${location.host}`);
+
+  const channels = []
+  ws.onmessage = ({ channel, event, data }) => {
+    
+  }
 
 	// Whenever the server emits 'login', log the login message
-	socket.on('login', function (data) {
+	ws.on('login', function (data) {
 		connected = true;
 		// Display the welcome message
 		var message = "Welcome to Socket.IO Chat – ";
@@ -234,16 +238,16 @@ $(function() {
 			prepend: true
 		});
 		addParticipantsMessage(data);
-	});
+	})
 
 	// Whenever the server emits 'new message', update the chat body
-	socket.on('new message', addChatMessage);
+	ws.on('newMsg', addChatMessage);
 
 	// Whenever the server emits 'user joined', log it in the chat body
-	socket.on('user joined', function (data) {
-		log(data.username + ' joined');
-		addParticipantsMessage(data);
-	});
+  socket.on('userJoined', (data) => {
+		log(data.username + ' joined')
+		addParticipantsMessage(data)
+	})
 
 	// Whenever the server emits 'user left', log it in the chat body
 	socket.on('user left', function (data) {
@@ -253,10 +257,10 @@ $(function() {
 	});
 
 	// Whenever the server emits 'typing', show the typing message
-	socket.on('typing', addChatTyping);
+	ws.on('typing', addChatTyping);
 
 	// Whenever the server emits 'stop typing', kill the typing message
-	socket.on('stop typing', removeChatTyping)
+	ws.on('stop typing', removeChatTyping)
 
 	socket.on('disconnect', function () {
 		log('you have been disconnected');
