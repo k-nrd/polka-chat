@@ -1,8 +1,7 @@
 import http from 'http'
 import polka from 'polka'
-import { Server } from 'socket.io'
 import sirv from 'sirv'
-import type { Socket } from 'socket.io'
+import WebSocket from 'ws'
 
 const { PORT = 3000 } = process.env
 
@@ -14,19 +13,24 @@ polka({ server }).use(files).listen(PORT, (err: Error) => {
   console.log(`> Running on localhost:${PORT}`)
 })
 
-const io = new Server(server)
+const wss = new WebSocket.Server({ server })
 
 let users = 0
 
-io.on('connection', (socket: Socket) => {
+wss.on('connection', (socket) => {
   let added = false
   let username: string
 
-  socket.on('new message', (data: string) => {
-    socket.broadcast.emit('new message', {
-      username,
-      message: data,
+  const broadcast = (type: string, data: object): void => {
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send({ type, data })
+      }
     })
+  }
+
+  socket.on('new message', (data: string) => {
+    broadcast('new message', { username, message: data })
   })
 
   socket.on('add user', (data: string) => {
@@ -34,22 +38,21 @@ io.on('connection', (socket: Socket) => {
     username = data
     ++users
     added = true
-    socket.emit('login', { users })
-    socket.broadcast.emit('user joined', { users, username })
+    broadcast('user joined', { users, username })
   })
 
   socket.on('typing', (_: any) => {
-    socket.broadcast.emit('typing', { username })
+    broadcast('typing', { username })
   })
 
   socket.on('stop typing', (_: any) => {
-    socket.broadcast.emit('stop typing', { username })
+    broadcast('stop typing', { username })
   })
 
   socket.on('disconnect', (_: any) => {
     if (added) {
       --users
-      socket.broadcast.emit('user left', { users, username })
+      broadcast('user left', { users, username })
     }
   })
 })
