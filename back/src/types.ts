@@ -12,6 +12,7 @@ export type OutgoingEvent = 'userJoined' | 'userLeft' | 'typing' | 'stopTyping' 
 
 export interface Channels {
   TEST: WebSocket[]
+  TEST2: WebSocket[]
 }
 
 export interface Message<T> {
